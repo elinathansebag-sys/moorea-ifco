@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moorea → IFCO</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f1; color: #2c3e50; min-height: 100vh; }
+
+header {
+  background: #111; padding: 0 40px; height: 72px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+}
+.moorea-logo { display: flex; align-items: center; font-family: 'Arial Black', sans-serif; font-size: 26px; font-weight: 900; letter-spacing: -1px; color: white; text-transform: lowercase; }
+.moorea-logo .yo { color: #111; background: #b8a000; border-radius: 50%; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; }
+.header-center { display: flex; flex-direction: column; align-items: center; }
+.header-center-title { color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
+.header-arrow { color: #27ae60; font-size: 18px; margin-top: 2px; }
+.ifco-badge { background: #27ae60; color: white; font-weight: 900; font-size: 18px; letter-spacing: 2px; padding: 6px 14px; border-radius: 8px; }
+
+/* LOGIN OVERLAY */
+.login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: center; justify-content: center; }
+.login-box { background: white; border-radius: 20px; padding: 40px 44px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.25); }
+.login-box .l-icon { font-size: 48px; margin-bottom: 12px; }
+.login-box h2 { font-size: 20px; font-weight: 800; color: #1a6b3a; margin-bottom: 6px; }
+.login-box p { font-size: 13px; color: #aaa; margin-bottom: 22px; }
+.login-box input { width: 100%; padding: 12px 16px; border: 2px solid #d4edda; border-radius: 10px; font-size: 15px; outline: none; text-align: center; margin-bottom: 14px; transition: border 0.2s; }
+.login-box input:focus { border-color: #27ae60; }
+.login-box button { width: 100%; background: #27ae60; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.login-box button:hover { background: #1e8449; }
+
+main { max-width: 720px; margin: 36px auto; padding: 0 24px 60px; }
+
+.user-bar { background: #111; color: white; border-radius: 12px; padding: 10px 20px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; }
+.user-bar .ub-name { font-weight: 700; color: #27ae60; }
+.user-bar .ub-change { color: #aaa; cursor: pointer; text-decoration: underline; font-size: 11px; }
+.user-bar .ub-change:hover { color: white; }
+
+.card { background: white; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
+.card-top { background: linear-gradient(135deg, #f0fff6, #e8f8ef); padding: 26px 36px 20px; border-bottom: 1px solid #d4edda; text-align: center; }
+.card-top h2 { font-size: 17px; font-weight: 700; color: #1a6b3a; margin-bottom: 4px; }
+.card-top p { font-size: 13px; color: #7f8c8d; }
+
+.drop-zone { margin: 22px 32px; border: 2.5px dashed #a8d5b5; border-radius: 14px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; background: #fafffe; }
+.drop-zone:hover, .drop-zone.drag-over { border-color: #27ae60; background: #f0fff6; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(39,174,96,0.1); }
+.drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { font-size: 34px; margin-bottom: 8px; display: block; }
+.drop-title { font-size: 15px; font-weight: 700; color: #2c3e50; margin-bottom: 4px; }
+.drop-sub { font-size: 12px; color: #aaa; }
+.drop-btn { display: inline-block; margin-top: 10px; background: #27ae60; color: white; padding: 7px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; pointer-events: none; }
+
+.info-pills { display: flex; justify-content: center; gap: 10px; padding: 0 32px 22px; flex-wrap: wrap; }
+.pill { background: #f4f7f5; border: 1px solid #d4edda; border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 600; color: #1e8449; }
+
+#status-bar { margin: 0 32px 18px; padding: 12px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; display: none; }
+#status-bar.success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; display: block; }
+#status-bar.error   { background: #fdedec; color: #c0392b; border: 1px solid #f5b7b1; display: block; }
+#status-bar.info    { background: #eaf4fb; color: #1a5276; border: 1px solid #a9cce3; display: block; }
+
+#action-row { display: none; padding: 0 32px 26px; gap: 10px; flex-direction: column; }
+.big-btn { display: flex; align-items: center; gap: 14px; padding: 15px 18px; border-radius: 12px; border: 2px solid #d4edda; background: white; cursor: pointer; transition: all 0.2s; text-align: left; width: 100%; }
+.big-btn:hover { border-color: #27ae60; background: #f0fff6; transform: translateX(3px); box-shadow: 0 4px 14px rgba(39,174,96,0.12); }
+.big-btn .bi { font-size: 22px; flex-shrink: 0; }
+.big-btn .bt { font-size: 14px; font-weight: 700; color: #2c3e50; }
+.big-btn .bd { font-size: 12px; color: #aaa; margin-top: 2px; }
+.btn-reset { background: none; border: none; color: #aaa; font-size: 12px; cursor: pointer; text-align: center; padding-bottom: 6px; text-decoration: underline; }
+.btn-reset:hover { color: #555; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 26px 14px; border-bottom: 1px solid #f0f0f0; cursor: pointer; user-select: none; }
+.section-header h3 { font-size: 15px; font-weight: 700; color: #1a6b3a; display: flex; align-items: center; gap: 8px; }
+.section-toggle { font-size: 12px; color: #27ae60; font-weight: 600; }
+.section-body { padding: 0 26px 22px; display: none; }
+.section-body.open { display: block; }
+
+.histo-empty { text-align: center; color: #bbb; font-size: 13px; padding: 28px 0; }
+.histo-table-wrap { border: 1px solid #e8f0ea; border-radius: 10px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+thead th { background: #f0fff6; color: #1a6b3a; font-weight: 700; padding: 9px 12px; text-align: left; border-bottom: 1px solid #d4edda; }
+tbody tr { border-bottom: 1px solid #f4f4f4; }
+tbody tr:hover { background: #fafffe; }
+tbody td { padding: 8px 12px; vertical-align: middle; }
+.badge-ok { background: #eafaf1; color: #1e8449; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+.badge-sent { background: #eaf4fb; color: #1a5276; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+
+.client-search { width: 100%; padding: 9px 14px; border: 1.5px solid #d4edda; border-radius: 9px; font-size: 13px; margin-bottom: 12px; outline: none; transition: border 0.2s; }
+.client-search:focus { border-color: #27ae60; }
+.client-table-wrap { max-height: 280px; overflow-y: auto; border: 1px solid #e8f0ea; border-radius: 10px; }
+.td-name { font-weight: 600; color: #2c3e50; max-width: 260px; word-break: break-word; }
+.td-code { font-family: monospace; color: #1a6b3a; font-weight: 700; }
+.btn-sm { border: none; padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+.btn-edit { background: #eaf4fb; color: #1a5276; margin-right: 3px; }
+.btn-edit:hover { background: #aed6f1; }
+.btn-del { background: #fdedec; color: #c0392b; }
+.btn-del:hover { background: #f5b7b1; }
+.add-form { background: #f0fff6; border: 1.5px solid #a8d5b5; border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+.add-form h4 { font-size: 13px; font-weight: 700; color: #1a6b3a; margin-bottom: 10px; }
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.form-row input { flex: 1; padding: 8px 12px; border: 1.5px solid #d4edda; border-radius: 8px; font-size: 13px; outline: none; transition: border 0.2s; }
+.form-row input:focus { border-color: #27ae60; }
+.btn-add { background: #27ae60; color: white; border: none; padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; width: 100%; }
+.btn-add:hover { background: #1e8449; }
+.btn-cancel-edit { background: #eee; color: #555; border: none; padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 6px; }
+.badge-count { background: #27ae60; color: white; border-radius: 20px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
+
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+.overlay.visible { display: flex; }
+.popup { background: white; border-radius: 18px; padding: 30px 34px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.22); animation: popIn 0.2s ease; border-top: 7px solid #e74c3c; }
+@keyframes popIn { from { transform: scale(0.88); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.popup .p-icon { font-size: 38px; margin-bottom: 8px; }
+.popup h3 { font-size: 17px; font-weight: 800; color: #c0392b; margin-bottom: 8px; }
+.popup p { font-size: 13px; color: #777; line-height: 1.6; margin-bottom: 14px; }
+#popup-clients { background: #fff5f5; border: 1.5px solid #f5c6cb; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; text-align: left; list-style: none; }
+#popup-clients li { color: #c0392b; font-weight: 700; font-size: 13px; margin: 3px 0; }
+#popup-clients li::before { content: "⚠️ "; }
+.popup-btn { border: none; padding: 10px 24px; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; background: #e74c3c; color: white; }
+.popup-btn:hover { background: #c0392b; }
+
+footer { text-align: center; padding: 20px; font-size: 11px; color: #bbb; }
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="l-icon">👤</div>
+    <h2>Bienvenue sur Moorea IFCO</h2>
+    <p>Entrez votre prénom pour commencer</p>
+    <input type="text" id="login-input" placeholder="Votre prénom..." maxlength="30" onkeydown="if(event.key==='Enter') doLogin()">
+    <button onclick="doLogin()">Continuer →</button>
+  </div>
+</div>
+
+<header>
+  <div class="moorea-logo">mo<span class="yo">o</span>rea</div>
+  <div class="header-center">
+    <div class="header-center-title">Export IFCO automatique</div>
+    <div class="header-arrow">⟶</div>
+  </div>
+  <div class="ifco-badge">IFCO</div>
+</header>
+
+<main>
+  <div class="user-bar">
+    <span>👤 Connecté en tant que : <span class="ub-name" id="display-name">—</span></span>
+    <span class="ub-change" onclick="changeUser()">Changer d'utilisateur</span>
+  </div>
+
+  <div class="card">
+    <div class="section-header" onclick="toggleSection('histo-body','histo-toggle')">
+      <h3>📋 Suivi des déclarations <span class="badge-count" id="histo-count">0</span></h3>
+      <span class="section-toggle" id="histo-toggle">▼ Afficher</span>
+    </div>
+    <div class="section-body open" id="histo-body">
+      <div id="histo-content"><div class="histo-empty">Aucune déclaration enregistrée pour le moment.</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-top">
+      <h2>Convertisseur de ventes IFCO</h2>
+      <p>Importez votre export de ventes du jour pour générer le fichier IFCO</p>
+    </div>
+    <div class="drop-zone" id="dropZone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls">
+      <span class="drop-icon">📂</span>
+      <div class="drop-title">Glissez votre fichier de ventes ici</div>
+      <div class="drop-sub">Format .xlsx exporté depuis votre logiciel</div>
+      <span class="drop-btn">Parcourir</span>
+    </div>
+    <div class="info-pills">
+      <span class="pill">🔒 Direction : S</span>
+      <span class="pill">📦 Matériel : 4314</span>
+      <span class="pill">🪪 N° IFCO : 639861</span>
+    </div>
+    <div id="status-bar"></div>
+    <div id="action-row">
+      <button class="big-btn" onclick="downloadExcel()">
+        <span class="bi">⬇️</span>
+        <div><div class="bt">Télécharger le fichier</div><div class="bd">Sauvegarder le fichier .xlsx sur mon ordinateur</div></div>
+      </button>
+      <button class="big-btn" onclick="sendToIfco()">
+        <span class="bi">🌐</span>
+        <div><div class="bt">Envoyer sur IFCO</div><div class="bd">Télécharger et ouvrir le portail ifco-online.com</div></div>
+      </button>
+      <button class="btn-reset" onclick="resetApp()">🔄 Recommencer avec un nouveau fichier</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-header" onclick="toggleSection('clients-body','clients-toggle')">
+      <h3>👥 Codes IFCO clients <span class="badge-count" id="badge-count">0</span></h3>
+      <span class="section-toggle" id="clients-toggle">▼ Afficher</span>
+    </div>
+    <div class="section-body" id="clients-body">
+      <input class="client-search" type="text" id="client-search" placeholder="🔍 Rechercher un client..." oninput="renderClients()">
+      <div class="client-table-wrap">
+        <table>
+          <thead><tr><th>Nom client</th><th>Code IFCO</th><th>Actions</th></tr></thead>
+          <tbody id="client-tbody"></tbody>
+        </table>
+      </div>
+      <div class="add-form">
+        <h4 id="form-title">➕ Ajouter un client</h4>
+        <div class="form-row"><input type="text" id="input-name" placeholder="Nom exact du client"></div>
+        <div class="form-row"><input type="text" id="input-code" placeholder="Code IFCO (ex: 705335)"></div>
+        <button class="btn-add" onclick="saveClient()">💾 Enregistrer</button>
+        <button class="btn-cancel-edit" id="btn-cancel" style="display:none" onclick="cancelEdit()">Annuler</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>Moorea IFCO Converter · Suivi partagé en temps réel</footer>
+
+<div class="overlay" id="popup-overlay">
+  <div class="popup">
+    <div class="p-icon">🚨</div>
+    <h3>Codes IFCO manquants !</h3>
+    <p>Ces clients n'ont pas de code IFCO associé.<br>Les lignes concernées seront <strong>incomplètes</strong>.</p>
+    <ul id="popup-clients"></ul>
+    <button class="popup-btn" onclick="document.getElementById('popup-overlay').classList.remove('visible')">Continuer quand même</button>
+  </div>
+</div>
+
+<script>
+const HISTO_KEY = 'moorea_ifco_history';
+const CLIENTS_KEY = 'moorea_ifco_clients';
+let currentUser = '';
+let allRows = [];
+let editingKey = null;
+
+let bc;
+try { bc = new BroadcastChannel('moorea_ifco_sync'); bc.onmessage = () => { loadHisto(); }; } catch(e) {}
+function broadcast() { try { bc && bc.postMessage('refresh'); } catch(e) {} }
+
+function loadHisto() {
+  const raw = localStorage.getItem(HISTO_KEY);
+  const entries = raw ? JSON.parse(raw) : [];
+  document.getElementById('histo-count').textContent = entries.length;
+  if (!entries.length) {
+    document.getElementById('histo-content').innerHTML = '<div class="histo-empty">Aucune déclaration enregistrée pour le moment.</div>';
+    return;
+  }
+  const rows = [...entries].reverse().map(e => `
+    <tr>
+      <td><strong>${escHtml(e.user)}</strong></td>
+      <td>${escHtml(e.date)}</td>
+      <td>${e.lignes} ligne${e.lignes > 1 ? 's' : ''}</td>
+      <td>${escHtml(e.fichier)}</td>
+      <td><span class="${e.type === 'envoi' ? 'badge-sent' : 'badge-ok'}">${e.type === 'envoi' ? '🌐 Envoyé IFCO' : '⬇️ Téléchargé'}</span></td>
+    </tr>`).join('');
+  document.getElementById('histo-content').innerHTML = `
+    <div class="histo-table-wrap">
+      <table>
+        <thead><tr><th>Utilisateur</th><th>Date & heure</th><th>Lignes</th><th>Fichier</th><th>Action</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function addHisto(type, lignes, fichier) {
+  const raw = localStorage.getItem(HISTO_KEY);
+  const entries = raw ? JSON.parse(raw) : [];
+  const now = new Date();
+  entries.push({
+    user: currentUser,
+    date: now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'}),
+    lignes, fichier, type, ts: now.getTime()
+  });
+  if (entries.length > 100) entries.splice(0, entries.length - 100);
+  localStorage.setItem(HISTO_KEY, JSON.stringify(entries));
+  loadHisto();
+  broadcast();
+}
+
+function doLogin() {
+  const val = document.getElementById('login-input').value.trim();
+  if (!val) { document.getElementById('login-input').style.borderColor = '#e74c3c'; return; }
+  currentUser = val;
+  document.getElementById('display-name').textContent = val;
+  document.getElementById('login-overlay').style.display = 'none';
+  loadHisto();
+}
+
+function changeUser() {
+  document.getElementById('login-input').value = '';
+  document.getElementById('login-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('login-input').focus(), 100);
+}
+
+let clientMap = JSON.parse(localStorage.getItem(CLIENTS_KEY) || 'null') || {
+  'CSF AIRE SUR LA LYS - 351':705359,'CARREFOUR LCM AIRE SUR LA LYS':705359,
+  'CARREFOUR BEZIERS - 742':705331,'CARREFOUR SCH BEZIERS':705331,
+  'CSF BILLY BERCLAU SUPER -':705334,'CARREFOUR SCH BILLY BERCLAU':705334,
+  'CSF FUVEAU - 722':710920,'CARREFOUR SCH FUVEAU':710920,
+  'CARREFOUR LYON - 751':705335,'CARREFOUR SCH LYON':705335,
+  'CSD ALBY':706069,'CSD':706069,
+  'COOPERATIVE U ENSEIGNE ET':706375,'SYSTEME U EST MULHOUSE':706375,
+  'COOPERATIVE U ENSEIGNE SA':706376,'SYSTEME U EST ST JUST':706376,
+  'COOPERATIVE U ENSEIGNE NO':703812,'SYSTEME U NORD-OUEST - IFS':703812,
+  'COOP U CARQUEFOU':701267,'SYSTEME U OUEST ANTARÈS':701267,
+  'COOP U FONTENAY LE COMTE':708275,'SYSTEME U OUEST FONTENAY LE COMTE':708275,
+  'COOP U PLAINTEL':705011,'SYSTEME U OUEST PLOUFRAGAN':705011,
+  'COOP U SAVIGNY':703666,'SYSTEME U OUEST SAVIGNY':703666,
+  'CARREFOUR - EX CORA METZ':717250,'CARREFOUR - EX CORA TIGERY':717251,
+  'CARREFOUR LCM CARPIQUET':705360,'CARREFOUR LCM COMBS LA VILLE':705361,
+  'CARREFOUR LCM CREPY':705362,'CARREFOUR LCM LE MANS':705363,
+  'CARREFOUR LCM LE RHEU':705364,'CARREFOUR LCM LUNEVILLE':705365,
+  'CARREFOUR LCM SENNECE':705369,'CARREFOUR SCH BAIN DE BRETAGNE':705329,
+  'CARREFOUR SCH DAMMARTIN':705332,'CARREFOUR SCH FLEURY':705333,
+  'LECLERC SCADIF':714106,'SYSTEME U EST - RUMILLY':706377,
+  'SYSTEME U EST ST VIT':707026,'SYSTEME U NORD-OUEST - PDU ALFORTVILLE':713339,
+  'SYSTEME U NORD-OUEST BEUZEVILLE':703813,'SYSTEME U NORD-OUEST COURCELLES':714107,
+  'SYSTEME U NORD-OUEST NANTEUIL':706372,'SYSTEME U OUEST COOP SAINTES':707368,
+  'SYSTEME U OUEST HAUTE FORÊT':704654,'SYSTEME U OUEST LES HERBIERS':702999,
+  'SYSTEME U OUEST NANTES ATLANTIQUE':701265,'SYSTEME U OUEST PRAHECQ':702441,
+  'SYSTEME U OUEST SEMOY':712043,'SYSTEME U OUEST TRÉLAZÉ':701268,
+  'SYSTEME U SUD - BON ENCONTRE (AGEN)':707099,"SYSTEME U SUD - CLERMONT L'HERAULT":707102,
+  'SYSTEME U SUD - MIRAMAS':707101,'SYSTEME U SUD - VENDARGUES':707098,
+  'SYSTEME U SUD LANGON':707100,'SYSTEME U SUD LE MISTRAL':707103,
+};
+
+function saveClients() { localStorage.setItem(CLIENTS_KEY, JSON.stringify(clientMap)); }
+
+function renderClients() {
+  const q = document.getElementById('client-search').value.toLowerCase();
+  document.getElementById('badge-count').textContent = Object.keys(clientMap).length;
+  const entries = Object.entries(clientMap).filter(([k]) => !q || k.toLowerCase().includes(q));
+  document.getElementById('client-tbody').innerHTML = entries.map(([name, code]) => `
+    <tr>
+      <td class="td-name">${escHtml(name)}</td>
+      <td class="td-code">${code}</td>
+      <td><button class="btn-sm btn-edit" onclick="editClient(${JSON.stringify(name)})">✏️</button><button class="btn-sm btn-del" onclick="deleteClient(${JSON.stringify(name)})">🗑️</button></td>
+    </tr>`).join('') || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">Aucun résultat</td></tr>';
+}
+
+function editClient(name) {
+  editingKey = name;
+  document.getElementById('input-name').value = name;
+  document.getElementById('input-code').value = clientMap[name];
+  document.getElementById('form-title').textContent = '✏️ Modifier le client';
+  document.getElementById('btn-cancel').style.display = 'block';
+}
+
+function cancelEdit() {
+  editingKey = null;
+  document.getElementById('input-name').value = '';
+  document.getElementById('input-code').value = '';
+  document.getElementById('form-title').textContent = '➕ Ajouter un client';
+  document.getElementById('btn-cancel').style.display = 'none';
+}
+
+function deleteClient(name) {
+  if (!confirm(`Supprimer "${name}" ?`)) return;
+  delete clientMap[name]; saveClients(); renderClients();
+}
+
+function saveClient() {
+  const name = document.getElementById('input-name').value.trim();
+  const code = parseInt(document.getElementById('input-code').value.trim());
+  if (!name) { alert('Entrez un nom de client.'); return; }
+  if (!code) { alert('Entrez un code IFCO valide.'); return; }
+  if (editingKey && editingKey !== name) delete clientMap[editingKey];
+  clientMap[name] = code;
+  saveClients(); cancelEdit(); renderClients();
+}
+
+function toggleSection(bodyId, labelId) {
+  const body = document.getElementById(bodyId);
+  const label = document.getElementById(labelId);
+  const open = body.classList.toggle('open');
+  label.textContent = open ? '▲ Masquer' : '▼ Afficher';
+  if (open && bodyId === 'clients-body') renderClients();
+}
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) processFile(fileInput.files[0]); });
+
+function getIfcoCode(nom) {
+  if (!nom) return '';
+  const key = nom.trim().toUpperCase();
+  for (const [k, v] of Object.entries(clientMap)) { if (key === k.toUpperCase()) return v; }
+  for (const [k, v] of Object.entries(clientMap)) { if (key.includes(k.toUpperCase()) || k.toUpperCase().includes(key)) return v; }
+  return '';
+}
+
+function fmtDate(val) {
+  if (!val) return '';
+  if (val instanceof Date) {
+    const d = val.toLocaleDateString('fr-FR').split('/');
+    return `${d[0]}.${d[1]}.${d[2]}`;
+  }
+  return String(val);
+}
+
+function getCell(row, idx) {
+  if (idx < 0) return '';
+  const v = row[idx];
+  if (v instanceof Date) return fmtDate(v);
+  return v !== undefined && v !== null ? String(v).trim() : '';
+}
+
+let lastFileName = '';
+
+function processFile(file) {
+  lastFileName = file.name;
+  setStatus('⏳ Lecture du fichier en cours...', 'info');
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      if (!raw || raw.length < 2) { setStatus('❌ Fichier vide ou non reconnu.', 'error'); return; }
+      let headerIdx = 0;
+      for (let i = 0; i < Math.min(raw.length, 10); i++) {
+        if (raw[i].join('|').toLowerCase().match(/vente|livraison|bl/)) { headerIdx = i; break; }
+      }
+      const headers = raw[headerIdx].map(h => String(h).trim().replace(/\n/g, ' '));
+      const col = n => headers.findIndex(h => h.toLowerCase().includes(n.toLowerCase()));
+      const idxVente = col('vente');
+      const idxs = { dateLiv: col('date liv'), bl: col('n° bl'), nbColis: col('nb colis'), nomClient: col('nom client') };
+      const dataRows = raw.slice(headerIdx + 1).filter(r => { const v = r[idxVente]; return v !== undefined && v !== null && String(v).trim() !== ''; });
+      allRows = dataRows.map(row => {
+        const dateLiv = fmtDate(row[idxs.dateLiv] instanceof Date ? row[idxs.dateLiv] : (row[idxs.dateLiv] ? new Date(row[idxs.dateLiv]) : ''));
+        const nomClient = getCell(row, idxs.nomClient);
+        return {
+          'DIRECTION':'S','DATE DE LIVRAISON':dateLiv,'DATE DE LIVRAISON 2':dateLiv,
+          'BON DE LIVRAISON':getCell(row,idxs.bl),          'POOL':'01','MATERIEL':'4314',
+          'QUANTITE':getCell(row,idxs.nbColis),'NUMERO PARTICIPANT':getIfcoCode(nomClient),
+          'MON NUMERO IFCO':'639861','REMARQUE':'','NUMERO DE COMMANDE':'','CONTENU':'',
+          "NUMERO D'IMMATRICULATION DU CAMION":'','ORIGINE':'','REMARQUE SUR LIVRAISON':'',
+          '_CLIENT':nomClient,
+        };
+      });
+      const nonReconnus = [...new Set(allRows.filter(r => !r['NUMERO PARTICIPANT']).map(r => r['_CLIENT']))].filter(Boolean);
+      if (nonReconnus.length > 0) {
+        document.getElementById('popup-clients').innerHTML = nonReconnus.map(c => `<li>${escHtml(c)}</li>`).join('');
+        document.getElementById('popup-overlay').classList.add('visible');
+      }
+      setStatus(`✅ ${allRows.length} ligne${allRows.length>1?'s':''} prête${allRows.length>1?'s':''} — choisissez comment exporter`, 'success');
+      document.getElementById('action-row').style.display = 'flex';
+    } catch(err) { setStatus('❌ Erreur : ' + err.message, 'error'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+const EXPORT_COLS = ['DIRECTION','DATE DE LIVRAISON','DATE DE LIVRAISON 2','BON DE LIVRAISON','POOL','MATERIEL','QUANTITE','NUMERO PARTICIPANT','MON NUMERO IFCO','REMARQUE','NUMERO DE COMMANDE','CONTENU',"NUMERO D'IMMATRICULATION DU CAMION",'ORIGINE','REMARQUE SUR LIVRAISON'];
+
+function buildCSV() {
+  const headers = EXPORT_COLS.map(c => c === 'DATE DE LIVRAISON 2' ? 'DATE DE LIVRAISON' : c);
+  const rows = [headers, ...allRows.map(r => EXPORT_COLS.map(c => r[c] || ''))];
+  return rows.map(r => r.join(';')).join('\n');
+}
+
+function getExportName() {
+  const n = new Date();
+  const y = n.getFullYear();
+  const m = String(n.getMonth()+1).padStart(2,'0');
+  const d = String(n.getDate()).padStart(2,'0');
+  return `639861_${y}_${m}_${d}.csv`;
+}
+
+function downloadCSV(filename, content) {
+  const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+function downloadExcel() {
+  if (!allRows.length) return;
+  const name = getExportName();
+  downloadCSV(name, buildCSV());
+  addHisto('telechargement', allRows.length, name);
+}
+
+function sendToIfco() {
+  if (!allRows.length) return;
+  const name = getExportName();
+  downloadCSV(name, buildCSV());
+  addHisto('envoi', allRows.length, name);
+  setTimeout(() => window.open('https://www.ifco-online.com/myifco-core-fe/clearing/navi.datenaustausch/edi/upload', '_blank'), 800);
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status-bar');
+  el.textContent = msg; el.className = type;
+}
+
+function resetApp() {
+  allRows = [];
+  document.getElementById('action-row').style.display = 'none';
+  document.getElementById('status-bar').className = '';
+  document.getElementById('status-bar').textContent = '';
+  document.getElementById('fileInput').value = '';
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+loadHisto();
+</script>
+</body>
+</html>
