@@ -433,7 +433,7 @@ function processFile(file) {
         const nomClient = getCell(row, idxs.nomClient);
         return {
           'DIRECTION':'S','DATE DE LIVRAISON':dateLiv,'DATE DE LIVRAISON 2':dateLiv,
-          'BON DE LIVRAISON':getCell(row,idxs.bl),          'POOL':'01','MATERIEL':'4314',
+          'BON DE LIVRAISON':getCell(row,idxs.bl),          'POOL':'','MATERIEL':'BLL4314',
           'QUANTITE':getCell(row,idxs.nbColis),'NUMERO PARTICIPANT':getIfcoCode(nomClient),
           'MON NUMERO IFCO':'639861','REMARQUE':'','NUMERO DE COMMANDE':'','CONTENU':'',
           "NUMERO D'IMMATRICULATION DU CAMION":'','ORIGINE':'','REMARQUE SUR LIVRAISON':'',
