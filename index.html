@@ -282,12 +282,18 @@ function getDeclByDate() {
   const entries = raw ? JSON.parse(raw) : [];
   const map = {};
   entries.forEach(e => {
-    const parts = e.date.split(' ')[0].split('/');
-    if (parts.length === 3) {
-      const key = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    // Utilise les dates de livraison si disponibles, sinon la date d'envoi
+    const dates = e.delivDates && e.delivDates.length > 0 ? e.delivDates : [e.date.split(' ')[0].split('/').reverse().join('-')];
+    dates.forEach(dateStr => {
+      // dateStr peut être au format JJ.MM.AAAA ou AAAA-MM-JJ
+      let key = dateStr;
+      if (dateStr.includes('.')) {
+        const p = dateStr.split('.');
+        key = `${p[2]}-${p[1]}-${p[0]}`;
+      }
       if (!map[key]) map[key] = [];
-      map[key].push(e.user);
-    }
+      if (!map[key].includes(e.user)) map[key].push(e.user);
+    });
   });
   return map;
 }
@@ -349,7 +355,9 @@ function addHisto(type, lignes, fichier) {
   const raw = localStorage.getItem(HISTO_KEY);
   const entries = raw ? JSON.parse(raw) : [];
   const now = new Date();
-  entries.push({ user: currentUser, date: now.toLocaleDateString('fr-FR')+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}), lignes, fichier, type, ts: now.getTime() });
+  // Récupère les dates de livraison uniques du fichier importé
+  const delivDates = [...new Set(allRows.map(r => r['DATE DE LIVRAISON']).filter(Boolean))];
+  entries.push({ user: currentUser, date: now.toLocaleDateString('fr-FR')+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}), lignes, fichier, type, ts: now.getTime(), delivDates });
   if (entries.length > 100) entries.splice(0, entries.length-100);
   localStorage.setItem(HISTO_KEY, JSON.stringify(entries));
   loadHisto(); renderCal(); broadcast();
