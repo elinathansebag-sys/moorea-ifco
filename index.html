@@ -548,8 +548,14 @@ function getIfcoCode(nom) {
 }
 
 function fmtDate(val) {
-  if(!val)return '';
-  if(val instanceof Date){const d=val.toLocaleDateString('fr-FR').split('/');return `${d[0]}.${d[1]}.${d[2]}`;}
+  if (!val) return '';
+  if (val instanceof Date) {
+    // Correction fuseau horaire : on utilise les valeurs locales
+    const d = String(val.getDate()).padStart(2,'0');
+    const m = String(val.getMonth()+1).padStart(2,'0');
+    const y = val.getFullYear();
+    return `${d}.${m}.${y}`;
+  }
   return String(val);
 }
 
