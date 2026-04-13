@@ -21,6 +21,24 @@ header {
 .header-arrow { color: #27ae60; font-size: 18px; margin-top: 2px; }
 .ifco-badge { background: #27ae60; color: white; font-weight: 900; font-size: 18px; letter-spacing: 2px; padding: 6px 14px; border-radius: 8px; }
 
+/* CALENDRIER */
+.cal-card { background: white; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
+.cal-top { background: linear-gradient(135deg, #f0fff6, #e8f8ef); padding: 16px 28px; border-bottom: 1px solid #d4edda; display: flex; align-items: center; justify-content: space-between; }
+.cal-top h3 { font-size: 15px; font-weight: 700; color: #1a6b3a; }
+.cal-nav { display: flex; align-items: center; gap: 12px; }
+.cal-nav button { background: none; border: 1.5px solid #d4edda; border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; color: #1a6b3a; display: flex; align-items: center; justify-content: center; }
+.cal-nav button:hover { background: #e8f8ef; }
+.cal-month { font-size: 14px; font-weight: 700; color: #1a6b3a; min-width: 140px; text-align: center; }
+.cal-grid { padding: 16px 20px 20px; }
+.cal-days-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 6px; }
+.cal-days-header span { text-align: center; font-size: 11px; font-weight: 700; color: #aaa; text-transform: uppercase; }
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; font-weight: 600; color: #2c3e50; position: relative; }
+.cal-day.empty { background: none; }
+.cal-day.today { border: 2px solid #27ae60; }
+.cal-day.has-decl { background: #27ae60; color: white; }
+.cal-day.has-decl::after { content: '✓'; position: absolute; top: 2px; right: 4px; font-size: 9px; }
+
 /* LOGIN OVERLAY */
 .login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 200; display: flex; align-items: center; justify-content: center; }
 .login-box { background: white; border-radius: 20px; padding: 40px 44px; max-width: 380px; width: 90%; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.25); }
@@ -233,7 +251,8 @@ let allRows = [];
 let editingKey = null;
 
 let bc;
-try { bc = new BroadcastChannel('moorea_ifco_sync'); bc.onmessage = () => { loadHisto(); }; } catch(e) {}
+try { bc = new BroadcastChannel('moorea_ifco_sync'); bc.onmessage = () => { loadHisto();
+renderCal(); }; } catch(e) {}
 function broadcast() { try { bc && bc.postMessage('refresh'); } catch(e) {} }
 
 function loadHisto() {
