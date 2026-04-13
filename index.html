@@ -334,6 +334,33 @@ let bc;
 try { bc = new BroadcastChannel('moorea_ifco_sync'); bc.onmessage = () => { loadHisto(); renderCal(); }; } catch(e) {}
 function broadcast() { try { bc && bc.postMessage('refresh'); } catch(e) {} }
 
+// Stockage partagé
+async function getSharedHisto() {
+  try {
+    const r = await window.storage.get(HISTO_KEY, true);
+    return r ? JSON.parse(r.value) : [];
+  } catch(e) { return []; }
+}
+
+async function setSharedHisto(entries) {
+  try {
+    await window.storage.set(HISTO_KEY, JSON.stringify(entries), true);
+  } catch(e) {}
+}
+
+async function getSharedClients() {
+  try {
+    const r = await window.storage.get(CLIENTS_KEY, true);
+    return r ? JSON.parse(r.value) : null;
+  } catch(e) { return null; }
+}
+
+async function setSharedClients(map) {
+  try {
+    await window.storage.set(CLIENTS_KEY, JSON.stringify(map), true);
+  } catch(e) {}
+}
+
 // ── CALENDRIER ──
 let calDate = new Date();
 
@@ -407,19 +434,17 @@ function openDayPopup(dateStr, cls) {
   document.getElementById('manual-overlay').classList.add('visible');
 }
 
-function validateDay(dateStr) {
-  const raw = localStorage.getItem(HISTO_KEY);
-  const entries = raw ? JSON.parse(raw) : [];
+async function validateDay(dateStr) {
+  const entries = await getSharedHisto();
   const now = new Date();
   entries.push({ user: currentUser, date: now.toLocaleDateString('fr-FR')+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}), lignes: 0, fichier: 'Manuel', type: 'manuel', ts: now.getTime(), delivDates: [dateStr] });
-  localStorage.setItem(HISTO_KEY, JSON.stringify(entries));
+  await setSharedHisto(entries);
   loadHisto(); renderCal(); broadcast();
   document.getElementById('manual-overlay').classList.remove('visible');
 }
 
-function deleteDay(dateStr) {
-  const raw = localStorage.getItem(HISTO_KEY);
-  let entries = raw ? JSON.parse(raw) : [];
+async function deleteDay(dateStr) {
+  let entries = await getSharedHisto();
   entries = entries.filter(e => {
     if (!e.delivDates) return true;
     e.delivDates = e.delivDates.filter(d => {
@@ -427,9 +452,9 @@ function deleteDay(dateStr) {
       if (d.includes('.')) { const p = d.split('.'); key = `${p[2]}-${p[1]}-${p[0]}`; }
       return key !== dateStr;
     });
-    return e.delivDates.length > 0 || !e.delivDates;
+    return e.delivDates.length > 0;
   });
-  localStorage.setItem(HISTO_KEY, JSON.stringify(entries));
+  await setSharedHisto(entries);
   loadHisto(); renderCal(); broadcast();
   document.getElementById('manual-overlay').classList.remove('visible');
 }
@@ -475,7 +500,12 @@ let clientMap = JSON.parse(localStorage.getItem(CLIENTS_KEY)||'null') || {
   'CSF AIRE SUR LA LYS - 351':705359,'CARREFOUR LCM AIRE SUR LA LYS':705359,'CARREFOUR BEZIERS - 742':705331,'CARREFOUR SCH BEZIERS':705331,'CSF BILLY BERCLAU SUPER -':705334,'CARREFOUR SCH BILLY BERCLAU':705334,'CSF FUVEAU - 722':710920,'CARREFOUR SCH FUVEAU':710920,'CARREFOUR LYON - 751':705335,'CARREFOUR SCH LYON':705335,'CSD ALBY':706069,'CSD':706069,'COOPERATIVE U ENSEIGNE ET':706375,'SYSTEME U EST MULHOUSE':706375,'COOPERATIVE U ENSEIGNE SA':706376,'SYSTEME U EST ST JUST':706376,'COOPERATIVE U ENSEIGNE NO':703812,'SYSTEME U NORD-OUEST - IFS':703812,'COOP U CARQUEFOU':701267,'SYSTEME U OUEST ANTARÈS':701267,'COOP U FONTENAY LE COMTE':708275,'SYSTEME U OUEST FONTENAY LE COMTE':708275,'COOP U PLAINTEL':705011,'SYSTEME U OUEST PLOUFRAGAN':705011,'COOP U SAVIGNY':703666,'SYSTEME U OUEST SAVIGNY':703666,'CARREFOUR - EX CORA METZ':717250,'CARREFOUR - EX CORA TIGERY':717251,'CARREFOUR LCM CARPIQUET':705360,'CARREFOUR LCM COMBS LA VILLE':705361,'CARREFOUR LCM CREPY':705362,'CARREFOUR LCM LE MANS':705363,'CARREFOUR LCM LE RHEU':705364,'CARREFOUR LCM LUNEVILLE':705365,'CARREFOUR LCM SENNECE':705369,'CARREFOUR SCH BAIN DE BRETAGNE':705329,'CARREFOUR SCH DAMMARTIN':705332,'CARREFOUR SCH FLEURY':705333,'LECLERC SCADIF':714106,'SYSTEME U EST - RUMILLY':706377,'SYSTEME U EST ST VIT':707026,'SYSTEME U NORD-OUEST - PDU ALFORTVILLE':713339,'SYSTEME U NORD-OUEST BEUZEVILLE':703813,'SYSTEME U NORD-OUEST COURCELLES':714107,'SYSTEME U NORD-OUEST NANTEUIL':706372,'SYSTEME U OUEST COOP SAINTES':707368,'SYSTEME U OUEST HAUTE FORÊT':704654,'SYSTEME U OUEST LES HERBIERS':702999,'SYSTEME U OUEST NANTES ATLANTIQUE':701265,'SYSTEME U OUEST PRAHECQ':702441,'SYSTEME U OUEST SEMOY':712043,'SYSTEME U OUEST TRÉLAZÉ':701268,'SYSTEME U SUD - BON ENCONTRE (AGEN)':707099,"SYSTEME U SUD - CLERMONT L'HERAULT":707102,'SYSTEME U SUD - MIRAMAS':707101,'SYSTEME U SUD - VENDARGUES':707098,'SYSTEME U SUD LANGON':707100,'SYSTEME U SUD LE MISTRAL':707103
 };
 
-function saveClients() { localStorage.setItem(CLIENTS_KEY, JSON.stringify(clientMap)); }
+async function initClients() {
+  const shared = await getSharedClients();
+  if (shared) clientMap = shared;
+}
+
+function saveClients() { setSharedClients(clientMap); localStorage.setItem(CLIENTS_KEY, JSON.stringify(clientMap)); }
 
 function renderClients() {
   const q = document.getElementById('client-search').value.toLowerCase();
@@ -633,6 +663,7 @@ function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').
 
 loadHisto();
 renderCal();
+initClients();
 </script>
 </body>
 </html>
